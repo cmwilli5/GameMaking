@@ -16,7 +16,7 @@ public class ActorController : MonoBehaviour {
 
     private void findGround(RaycastHit2D castInfo, float initDist = Mathf.Infinity, float offsetX = 0.0f, float offsetY = 0.0f)
     {
-
+        var boxSize = new Vector2(platBox.size.x * transform.localScale.x, platBox.size.y * transform.localScale.y);
         Vector3 norm = upward = Vector3.up;
         float normAngle = Mathf.Atan2(norm.y, norm.x);
         float normAngleDeg = normAngle * Mathf.Rad2Deg;
@@ -31,9 +31,9 @@ public class ActorController : MonoBehaviour {
         var rotboxOffset = (Vector3)(ahead * platBox.offset.x + upward * platBox.offset.y);
 
         var boxCenter = platBox.transform.position + rotboxOffset;
-        var upperOrigin = boxCenter + upward * platBox.size.y * 0.15f + new Vector3(offsetX, offsetY);
+        var upperOrigin = boxCenter + upward * boxSize.y * 0.15f + new Vector3(offsetX, offsetY);
         var mask = LayerMask.GetMask("Terrain");
-        var boxCastInfo = Physics2D.BoxCast(upperOrigin, platBox.size, 0/*rotDeg*/, -norm, initDist, mask);
+        var boxCastInfo = Physics2D.BoxCast(upperOrigin, boxSize, 0/*rotDeg*/, -norm, initDist, mask);
         if (!boxCastInfo.collider) return;
         float minDist = 0.0f, maxDist = boxCastInfo.distance;
         var diff = Mathf.Abs(maxDist - minDist);
@@ -42,7 +42,7 @@ public class ActorController : MonoBehaviour {
             while (diff > 0.01)
             {
                 var curDist = (maxDist + minDist) / 2.0f;
-                boxCastInfo = Physics2D.BoxCast(upperOrigin, platBox.size, 0/*rotDeg*/, -norm, curDist, mask);
+                boxCastInfo = Physics2D.BoxCast(upperOrigin, boxSize, 0/*rotDeg*/, -norm, curDist, mask);
                 if (boxCastInfo.collider)
                 {
                     maxDist = curDist;
@@ -60,6 +60,7 @@ public class ActorController : MonoBehaviour {
 
     void handleAir()
     {
+        var boxSize = new Vector2(platBox.size.x * transform.localScale.x, platBox.size.y * transform.localScale.y);
         //transform.Rotate(0, 0, -transform.eulerAngles.z);
         //print("INAIR");
         var right = Input.GetKey(KeyCode.RightArrow);
@@ -74,17 +75,18 @@ public class ActorController : MonoBehaviour {
         this.velocity.x = Mathf.Clamp(this.velocity.x, -maxX, maxX);
         this.velocity.y = Mathf.Clamp(this.velocity.y, -maxY, maxY);
         var velocity = this.velocity * Time.deltaTime;
-        print("V :" + velocity.x + " _ " + velocity.y);
+        //print("V :" + velocity.x + " _ " + velocity.y);
         speed = 0;
         float angle = platBox.transform.eulerAngles.z;
         var mask = LayerMask.GetMask("Terrain");
         var velocityDirection = velocity.normalized;
         var velocityMag = velocity.magnitude;
         var boxCenter = platBox.transform.position + (Vector3)platBox.offset;
-        var boxCastInfo = Physics2D.BoxCast(boxCenter, platBox.size, 0/*rotDeg*/, velocityDirection, velocityMag, mask);
+        var boxCastInfo = Physics2D.BoxCast(boxCenter, boxSize, 0/*rotDeg*/, velocityDirection, velocityMag, mask);
         var origCastInfo = boxCastInfo;
         if (boxCastInfo.collider != null)
         {
+            print("COLLIDE");
             float minFrac = 0, maxFrac = boxCastInfo.fraction, diff = Mathf.Abs(maxFrac - minFrac);
             Vector3 newPos = platBox.transform.position;
 
@@ -94,9 +96,9 @@ public class ActorController : MonoBehaviour {
                 newPos = platBox.transform.position + curFrac * velocity;
                 var xPos = platBox.transform.position + curFrac * new Vector3(velocity.x, 0);
                 var yPos = platBox.transform.position + curFrac * new Vector3(0, velocity.y);
-                if (Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, platBox.size, 0, mask) ||
-                    (Physics2D.OverlapBox(platBox.offset + (Vector2)xPos, platBox.size, 0, mask) &&
-                    Physics2D.OverlapBox(platBox.offset + (Vector2)yPos, platBox.size, 0, mask)))
+                if (Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, boxSize, 0, mask) ||
+                    (Physics2D.OverlapBox(platBox.offset + (Vector2)xPos, boxSize, 0, mask) &&
+                    Physics2D.OverlapBox(platBox.offset + (Vector2)yPos, boxSize, 0, mask)))
                 {
                     maxFrac = curFrac;
                 }
@@ -114,9 +116,9 @@ public class ActorController : MonoBehaviour {
             //print("minFrac: " + minFrac);
             //print("velocity: " + velocity);
             //print("Remaining velocity: " + remainingVel); 
-            //print("post-move collision? " + Physics2D.OverlapBox((Vector2)newPos + platBox.offset, platBox.size, 0, mask));
-            //print("post-move collision2? " + Physics2D.OverlapBox(new Vector2(newPos.x,0) + platBox.offset, platBox.size, 0, mask));
-            //print("post-move collision3? " + Physics2D.OverlapBox(new Vector2(0,newPos.y) + platBox.offset, platBox.size, 0, mask));
+            //print("post-move collision? " + Physics2D.OverlapBox((Vector2)newPos + platBox.offset, boxSize, 0, mask));
+            //print("post-move collision2? " + Physics2D.OverlapBox(new Vector2(newPos.x,0) + platBox.offset, boxSize, 0, mask));
+            //print("post-move collision3? " + Physics2D.OverlapBox(new Vector2(0,newPos.y) + platBox.offset, boxSize, 0, mask));
 
             if (velocity.x != 0.0f && velocity.y != 0.0f)
             {
@@ -130,9 +132,9 @@ public class ActorController : MonoBehaviour {
                 //print("V CastD: " + vertDist);
 
 
-                var horzCast = Physics2D.BoxCast(boxCenter, platBox.size,
+                var horzCast = Physics2D.BoxCast(boxCenter, boxSize,
                     angle, horzDir, horzDist, mask);
-                var vertCast = Physics2D.BoxCast(boxCenter, platBox.size,
+                var vertCast = Physics2D.BoxCast(boxCenter, boxSize,
                     angle, vertDir, vertDist, mask);
 
                 //print("H Cast: " + horzCast.collider);
@@ -149,7 +151,7 @@ public class ActorController : MonoBehaviour {
                         
                         float curDist = (maxDist + minDist) / 2.0f;
                         newPos = platBox.transform.position + curDist * (Vector3)direction;
-                        if (Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, platBox.size, 0, mask))
+                        if (Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, boxSize, 0, mask))
                         {
                             maxDist = curDist;
                         }
@@ -188,7 +190,7 @@ public class ActorController : MonoBehaviour {
                 if (velocity.y != 0.0f)
                 {
                     var direction = new Vector2(0, Mathf.Sign(remainingVel.y));
-                    var vertCast = Physics2D.BoxCast(boxCenter, platBox.size,
+                    var vertCast = Physics2D.BoxCast(boxCenter, boxSize,
                         angle, direction, Mathf.Max(1.0f, Mathf.Abs(remainingVel.y)), mask);
                     
                     print("V Cast: " + vertCast.collider);
@@ -202,7 +204,7 @@ public class ActorController : MonoBehaviour {
                         {
                             float curDist = (maxDist + minDist) / 2.0f;
                             newPos = platBox.transform.position + curDist * (Vector3)direction;
-                            if (Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, platBox.size, 0, mask))
+                            if (Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, boxSize, 0, mask))
                             {
                                 maxDist = curDist;
                             }
@@ -214,7 +216,7 @@ public class ActorController : MonoBehaviour {
                         }
                         newPos = platBox.transform.position + minDist * (Vector3)direction;
                         platBox.transform.position = newPos - (Vector3)platBox.offset;
-                        print("Post Move: " + Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, platBox.size, 0, mask));
+                        print("Post Move: " + Physics2D.OverlapBox(platBox.offset + (Vector2)newPos, boxSize, 0, mask));
                         if (velocity.y < 0.0f)
                             inAir = false;
                         velocity.y = 0.0f;
@@ -229,6 +231,7 @@ public class ActorController : MonoBehaviour {
     void handleGround()
     {
 
+        var boxSize = new Vector2(platBox.size.x * transform.localScale.x, platBox.size.y * transform.localScale.y);
         var right = Input.GetKey(KeyCode.RightArrow);
         var left = Input.GetKey(KeyCode.LeftArrow);
         var jmpB = Input.GetKey(KeyCode.Z);
@@ -250,12 +253,12 @@ public class ActorController : MonoBehaviour {
             var speedMulDT = speed * Time.deltaTime;
             var mask = LayerMask.GetMask("Terrain");
             var boxCenter = platBox.transform.position + rotboxOffset;
-            var upperOrigin = boxCenter + Vector3.up * platBox.size.y * 0.15f;
+            var upperOrigin = boxCenter + Vector3.up * boxSize.y * 0.15f;
             upperOrigin += ahead * speedMulDT;
             float upAngle = Mathf.Atan2(upward.y, upward.x) * Mathf.Rad2Deg;
             float rot = upAngle - 90.0f;
-            if (!Physics2D.OverlapBox(upperOrigin, platBox.size, 0, mask)) {
-                var boxCastInfo = Physics2D.BoxCast(upperOrigin, platBox.size, 0/*rotDeg*/, Vector3.down, platBox.size.y * 0.30f, mask);
+            if (!Physics2D.OverlapBox(upperOrigin, boxSize, 0, mask)) {
+                var boxCastInfo = Physics2D.BoxCast(upperOrigin, boxSize, 0/*rotDeg*/, Vector3.down, boxSize.y * 0.30f, mask);
                 if (boxCastInfo.collider)
                 {
                     if (boxCastInfo.fraction > 0.0f)
@@ -265,7 +268,7 @@ public class ActorController : MonoBehaviour {
                         while (diff > 0.01)
                         {
                             float curDist = (maxDist + minDist) / 2.0f;
-                            if (Physics2D.OverlapBox(upperOrigin + curDist * Vector3.down, platBox.size, 0.0f, mask))
+                            if (Physics2D.OverlapBox(upperOrigin + curDist * Vector3.down, boxSize, 0.0f, mask))
                             {
                                 maxDist = curDist;
                             }
@@ -279,7 +282,7 @@ public class ActorController : MonoBehaviour {
                     }
                 }
 
-                else if (!Physics2D.OverlapBox(upperOrigin, platBox.size, 0, mask))
+                else if (!Physics2D.OverlapBox(upperOrigin, boxSize, 0, mask))
                 {
                     inAir = true;
                     platBox.transform.position += ahead * speedMulDT;
